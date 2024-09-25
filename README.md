@@ -339,15 +339,7 @@ K-R-IH1.S-K-R-AO2.S-IH0-NG
    - **Cause:** The syllabified output does not match the original pronunciation.
    
    - **Solution:** Review the syllabification rules and ensure that all phonemes are correctly assigned to syllables.
-
-### Seeking Help
-
-If you encounter issues not covered here:
-
-1. **Check the Logs:** Review any error messages or logs for clues.
-2. **Review Code:** Ensure that all scripts are correctly implemented and that dependencies are met.
-3. **Contact Maintainers:** Reach out to the project maintainers or contributors for assistance.
-
+  
 ---
 
 ## Contributing
