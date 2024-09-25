@@ -122,15 +122,7 @@ def resolve_onsets_and_codas(
         coda = []
         current_onset = onsets[i]
 
-        # Handle special case: Onset starts with 'R' and has more than one phoneme
-        starts_with_R = len(current_onset) > 1 and current_onset[0] == 'R'
-        if starts_with_R:
-            nuclei[i - 1].append(current_onset.pop(0))
-
-        # Handle special case: Onset ends with 'Y' and has more than two phonemes
-        ends_with_Y = len(current_onset) > 2 and current_onset[-1] == 'Y'
-        if ends_with_Y:
-            nuclei[i].insert(0, current_onset.pop())
+        # Removed the 'starts_with_R' handling to prevent treating 'R' as a vowel
 
         # Apply Alaska rule
         applies_alaska_rule = (

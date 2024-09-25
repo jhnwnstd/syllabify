@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import random
 import nltk
@@ -112,15 +114,32 @@ def main():
     global cmu_dict
     cmu_dict = nltk.corpus.cmudict.dict()
 
-    try:
-        # Select ten random unique words from the CMU dictionary
-        words_to_test = get_random_words(cmu_dict, DEFAULT_WORD_COUNT)
-    except ValueError as ve:
-        print(f"Error selecting words: {ve}")
-        sys.exit(1)
+    while True:
+        print("\n=== Syllabify and Compute WCM ===")
+        print("1. Test random words")
+        print("2. Test a specific word")
+        print("3. Exit")
+        choice = input("Enter your choice (1/2/3): ").strip()
 
-    # Test the syllabification and compute WCM for the selected words
-    test_syllabify(syllabify_module, wcm_module, words_to_test)
+        if choice == '1':
+            try:
+                count_input = input(f"Enter the number of random words to test (default {DEFAULT_WORD_COUNT}): ").strip()
+                count = int(count_input) if count_input else DEFAULT_WORD_COUNT
+                words_to_test = get_random_words(cmu_dict, count)
+                test_syllabify(syllabify_module, wcm_module, words_to_test)
+            except ValueError as ve:
+                print(f"Error: {ve}")
+        elif choice == '2':
+            word = input("Enter the word to syllabify: ").strip()
+            if word:
+                test_syllabify(syllabify_module, wcm_module, [word])
+            else:
+                print("No word entered. Please try again.")
+        elif choice == '3':
+            print("Exiting the program. Goodbye!")
+            sys.exit(0)
+        else:
+            print("Invalid choice. Please enter 1, 2, or 3.")
 
 if __name__ == '__main__':
     main()
