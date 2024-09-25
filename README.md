@@ -277,9 +277,7 @@ Word Complexity Measure (WCM): 4
 Processing the word `crisscrossing`:
 
 1. **Pronunciation:** `['K', 'R', 'IH1', 'S', 'K', 'R', 'AO2', 'S', 'IH0', 'NG']`
-2. **Syllabification
-
-:**
+2. **Syllabification:**
    - `K-R-IH1`
    - `S-K-R-AO2`
    - `S-IH0-NG`
