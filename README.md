@@ -45,7 +45,7 @@ These functionalities are encapsulated within three Python scripts that work tog
 
 Ensure you have the following installed:
 
-- **Python 3.6 or higher**
+- **Python 3.7 or higher**
 - **pip** (Python package installer)
 - **Virtual Environment (optional but recommended):** To manage project dependencies without affecting system-wide packages.
 
@@ -72,12 +72,6 @@ Ensure you have the following installed:
 3. **Install Required Packages:**
 
    ```bash
-   pip install -r requirements.txt
-   ```
-
-   *If `requirements.txt` is not provided, install the necessary packages manually:*
-
-   ```bash
    pip install nltk
    ```
 
@@ -95,7 +89,6 @@ Ensure you have the following installed:
 
 ```
 syllabify/
-├── __init__.py
 ├── __pycache__/
 ├── manual.pdf
 ├── README.md
