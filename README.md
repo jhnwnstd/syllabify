@@ -244,13 +244,13 @@ When running the script, you'll be presented with an interactive menu that allow
 2. Test a specific word
 3. Exit
 Enter your choice (1/2/3): 2
-Enter the word to syllabify: computer
+Enter the word to syllabify: verdicts
 
-Word: computer
-Pronunciation: ['K', 'AH0', 'M', 'P', 'Y', 'UW1', 'T', 'ER0']
-Number of Syllables: 3
-Syllabification: K-AH0.M-P-Y-UW1.T-ER0
-Word Complexity Measure (WCM): 5
+Word: verdicts
+Pronunciation: ['V', 'ER1', 'D', 'IH0', 'K', 'T', 'S']
+Number of Syllables: 2
+Syllabification: V-ER1.D-IH0-K T S
+Word Complexity Measure (WCM): 6
 ----------------------------------------
 ```
 
