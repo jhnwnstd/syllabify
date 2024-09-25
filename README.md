@@ -26,8 +26,6 @@ Additionally, a comprehensive guide is available in [`manual.pdf`](manual.pdf).
 - [Example](#example)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
 
 ---
 
