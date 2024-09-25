@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import sys
 import random
 import nltk
@@ -79,16 +77,20 @@ def test_syllabify(syllabify_module, wcm_module, word_list: List[str]):
 
                     # Pretty-print the syllabified output
                     syllabified_str = syllabify_module.pretty_print(syllables)
-                    print("Syllabification:")
-                    print(syllabified_str)
-
+                    
+                    # Count the number of syllables
+                    num_syllables = len(syllables)
+                    
                     # Compute the Word Complexity Measure using wcm function
                     complexity_score = wcm_module.wcm(pron)
+                    
+                    # Display the results
+                    print(f"Number of Syllables: {num_syllables}")
+                    print(f"Syllabification: {syllabified_str}")
                     print(f"Word Complexity Measure (WCM): {complexity_score}")
-
                 except ValueError as ve:
                     print(f"Error: {ve}")
-
+                
                 print("-" * 40)
         else:
             print(f"Word: {word} not found in CMU dictionary.")

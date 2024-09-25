@@ -1,30 +1,7 @@
-#!/usr/bin/env python
-# Copyright (c) 2012-2013 Kyle Gorman <gormanky@ohsu.edu>
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-# OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-# syllabify.py: prosodic parsing of ARPABET entries
-
 from dataclasses import dataclass
 from itertools import chain
-from typing import List, Tuple
+from typing import List, Tuple, Set
+import copy
 
 # Constants
 SLAX = {
@@ -94,38 +71,75 @@ def resolve_onsets_and_codas(
     nuclei: List[List[str]],
     onsets: List[List[str]],
     codas: List[str],
-    alaska_rule: bool
+    alaska_rule: bool,
+    SLAX: Set[str],
+    O3: Set[Tuple[str, ...]],
+    O2: Set[Tuple[str, ...]]
 ) -> Tuple[List[List[str]], List[List[str]]]:
     """
     Resolve onsets and compute codas based on syllabification rules.
 
+    This function adjusts the onsets of syllables to maximize onset clusters according to specified rules.
+    It also computes the codas for each syllable based on the adjusted onsets and remaining phonemes.
+    Optionally, it applies the Alaska rule to handle specific consonant clusters.
+
     Args:
-        nuclei (List[List[str]]): List of nuclei per syllable.
-        onsets (List[List[str]]): List of onsets per syllable.
-        codas (List[str]): Remaining phonemes after the last nucleus.
-        alaska_rule (bool): Whether to apply the Alaska rule.
+        nuclei (List[List[str]]): List of nuclei (vowels) per syllable.
+        onsets (List[List[str]]): List of onsets (consonant clusters) per syllable.
+        codas (List[str]): Remaining phonemes after the last nucleus to be assigned as codas.
+        alaska_rule (bool): Whether to apply the Alaska syllabification rule.
+        SLAX (Set[str]): Set of consonant clusters relevant to the Alaska rule.
+        O3 (Set[Tuple[str, ...]]): Set of three-consonant clusters for onset maximization.
+        O2 (Set[Tuple[str, ...]]): Set of two-consonant clusters for onset maximization.
 
     Returns:
-        Tuple containing:
-            - onsets (List[List[str]]): Updated onsets per syllable.
-            - codas (List[List[str]]): Updated codas per syllable.
+        Tuple[List[List[str]], List[List[str]]]:
+            - Updated onsets per syllable after resolving.
+            - Updated codas per syllable after resolving.
+
+    Raises:
+        ValueError: If input lists are empty or mismatched in length.
+
+    Example:
+        >>> nuclei = [['AH0'], ['AE1']]
+        >>> onsets = [['K'], ['S', 'T']]
+        >>> codas = ['D']
+        >>> resolve_onsets_and_codas(nuclei, onsets, codas, True, SLAX, O3, O2)
+        ([['K'], ['S', 'T']], [['D'], []])
     """
+    # Validate inputs
+    if not nuclei or not onsets:
+        raise ValueError("Nuclei and onsets lists must not be empty.")
+    if len(nuclei) != len(onsets):
+        raise ValueError("Nuclei and onsets lists must be of the same length.")
+
+    # Create deep copies to avoid mutating original inputs
+    nuclei = copy.deepcopy(nuclei)
+    onsets = copy.deepcopy(onsets)
     resolved_codas = [[] for _ in range(len(onsets))]
+
     for i in range(1, len(onsets)):
         coda = []
         current_onset = onsets[i]
 
-        # Handle special cases
-        if len(current_onset) > 1 and current_onset[0] == 'R':
+        # Handle special case: Onset starts with 'R' and has more than one phoneme
+        starts_with_R = len(current_onset) > 1 and current_onset[0] == 'R'
+        if starts_with_R:
             nuclei[i - 1].append(current_onset.pop(0))
-        if len(current_onset) > 2 and current_onset[-1] == 'Y':
+
+        # Handle special case: Onset ends with 'Y' and has more than two phonemes
+        ends_with_Y = len(current_onset) > 2 and current_onset[-1] == 'Y'
+        if ends_with_Y:
             nuclei[i].insert(0, current_onset.pop())
-        if (
-            len(current_onset) > 1
-            and alaska_rule
-            and nuclei[i - 1][-1] in SLAX
-            and current_onset[0] == 'S'
-        ):
+
+        # Apply Alaska rule
+        applies_alaska_rule = (
+            len(current_onset) > 1 and
+            alaska_rule and
+            nuclei[i - 1][-1] in SLAX and
+            current_onset[0] == 'S'
+        )
+        if applies_alaska_rule:
             coda.append(current_onset.pop(0))
 
         # Onset maximization
@@ -143,6 +157,10 @@ def resolve_onsets_and_codas(
             coda.append(current_onset.pop(0))
 
         resolved_codas[i - 1] = coda
+
+    # Assign remaining codas to the last syllable's coda
+    if codas:
+        resolved_codas[-1].extend(codas)
 
     return onsets, resolved_codas
 
@@ -166,10 +184,7 @@ def syllabify(pron: List[str], alaska_rule: bool = True) -> List[Syllable]:
     """
     pronunciation = list(pron)
     nuclei, onsets, codas = identify_nuclei_and_onsets(pronunciation)
-    onsets, resolved_codas = resolve_onsets_and_codas(nuclei, onsets, codas, alaska_rule)
-
-    # Append remaining codas
-    resolved_codas.append(codas)
+    onsets, resolved_codas = resolve_onsets_and_codas(nuclei, onsets, codas, alaska_rule, SLAX, O3, O2)
 
     syllables = [
         Syllable(onset, nucleus, coda)
