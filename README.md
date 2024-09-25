@@ -1,3 +1,7 @@
+Here's an updated README to reflect the new functionality of the `test_script.py`, where users can either test random words or input a specific word to syllabify and compute the Word Complexity Measure (WCM).
+
+---
+
 # Syllabify Project
 
 Welcome to the **Syllabify Project**! This project offers tools to syllabify words using the CMU Pronouncing Dictionary and compute their **Word Complexity Measure (WCM)**. It comprises three main Python scripts:
@@ -23,6 +27,7 @@ Additionally, a comprehensive guide is available in [`manual.pdf`](manual.pdf).
   - [Syllabify a Word](#syllabify-a-word)
   - [Compute Word Complexity Measure (WCM)](#compute-word-complexity-measure-wcm)
   - [Testing the Scripts](#testing-the-scripts)
+  - [Interactive Mode](#interactive-mode)
 - [Example](#example)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
@@ -35,7 +40,7 @@ The **Syllabify Project** is designed to:
 
 1. **Syllabify Words:** Break down words into their constituent syllables based on phonetic pronunciations.
 2. **Compute Word Complexity Measure (WCM):** Evaluate the complexity of words using a defined metric.
-3. **Test Functionality:** Validate syllabification and WCM computations using random words from the CMU Pronouncing Dictionary.
+3. **Test Functionality:** Validate syllabification and WCM computations either for user-specified words or random words from the CMU Pronouncing Dictionary.
 
 These functionalities are encapsulated within three Python scripts that work together seamlessly to provide comprehensive syllabification and complexity analysis.
 
@@ -141,7 +146,7 @@ Computes the **Word Complexity Measure (WCM)** for a given word based on its pro
 
 Serves as a testing utility that:
 
-1. Randomly selects a predefined number of words from the CMU Pronouncing Dictionary.
+1. Allows the user to either input a specific word or test a predefined number of random words from the CMU Pronouncing Dictionary.
 2. Syllabifies each selected word using `syllabify.py`.
 3. Computes the WCM for each word using `wcm.py`.
 4. Displays the results in a structured and readable format, including the number of syllables.
@@ -151,7 +156,7 @@ Serves as a testing utility that:
 - **`import_module` Function:** Dynamically imports `syllabify.py` and `wcm.py` as modules.
 - **`get_random_words` Function:** Selects a specified number of random words from the CMU Pronouncing Dictionary.
 - **`test_syllabify` Function:** Processes each word by syllabifying and computing its WCM, then displays the results.
-- **`main` Function:** Orchestrates the workflow by importing modules, selecting words, and invoking the test function.
+- **Interactive Menu:** Prompts the user to either select random words or input a specific word to test.
 
 #### Dependencies
 
@@ -215,31 +220,59 @@ Word Complexity Measure (WCM): 5
 
 ### Testing the Scripts
 
-Run `test_script.py` to syllabify and compute WCM for random words.
+Run `test_script.py` to syllabify and compute WCM for random words or specific words.
 
 ```bash
 python test_script.py
 ```
 
-**Sample Output:**
+---
+
+## **Interactive Mode**
+
+When running the script, you'll be presented with an interactive menu that allows you to:
+
+1. **Test Random Words:** Choose how many random words to test.
+2. **Test a Specific Word:** Enter a word to be syllabified.
+3. **Exit:** Close the program.
+
+**Sample Interaction:**
 
 ```
-Word: crisscrossing
-Pronunciation: ['K', 'R', 'IH1', 'S', 'K', 'R', 'AO2', 'S', 'IH0', 'NG']
-Number of Syllables: 4
-Syllabification: K-R-IH1.S-K-R-AO2.S-IH0-NG
+=== Syllabify and Compute WCM ===
+1. Test random words
+2. Test a specific word
+3. Exit
+Enter your choice (1/2/3): 2
+Enter the word to syllabify: computer
+
+Word: computer
+Pronunciation: ['K', 'AH0', 'M', 'P', 'Y', 'UW1', 'T', 'ER0']
+Number of Syllables: 3
+Syllabification: K-AH0.M-P-Y-UW1.T-ER0
 Word Complexity Measure (WCM): 5
 ----------------------------------------
-Word: example
-Pronunciation: ['IH0', 'G', 'Z', 'AE1', 'M', 'P', 'AH0', 'L']
-Number of Syllables: 3
-Syllabification: IH0-G-Z-AE1.M-P-AH0.L
-Word Complexity Measure (WCM): 3
-----------------------------------------
-...
 ```
 
-Each execution selects ten random words by default, syllabifies them, computes their WCM, and displays the results.
+Alternatively, you can test random words:
+
+```
+=== Syllabify and Compute WCM ===
+1. Test random words
+2. Test a specific word
+3. Exit
+Enter your choice (1/2/3): 1
+Enter the number of random words to test (default 10): 5
+
+Word: alaska
+Pronunciation: ['AH0', 'L', 'AE1', 'S', 'K', 'AH0']
+Number of Syllables: 3
+Syllabification: AH0.L-AE1-S.K-AH0
+Word Complexity Measure (WCM): 4
+----------------------------------------
+
+...
+```
 
 ---
 
@@ -248,7 +281,9 @@ Each execution selects ten random words by default, syllabifies them, computes t
 Processing the word `crisscrossing`:
 
 1. **Pronunciation:** `['K', 'R', 'IH1', 'S', 'K', 'R', 'AO2', 'S', 'IH0', 'NG']`
-2. **Syllabification:**
+2. **Syllabification
+
+:**
    - `K-R-IH1`
    - `S-K-R-AO2`
    - `S-IH0-NG`
@@ -345,3 +380,5 @@ Contributions are welcome! To contribute:
    ```
    
 5. **Open a Pull Request:** Describe your changes and submit for review.
+
+---
