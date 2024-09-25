@@ -1,64 +1,82 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from syllabify import syllabify
 
-## constants
+# Constants
 DORSALS = {'K', 'G', 'NG'}
 LIQUIDS = {'L', 'R'}
 VOICED_AF = {'V', 'DH', 'Z', 'ZH'}
 AF = {'F', 'TH', 'S', 'SH', 'CH'} | VOICED_AF
 
-
-def wcm(phonemes, *sylab):
+def wcm(phonemes):
     """
-    The "Word Complexity Measure", as proposed in:
+    Calculate the Word Complexity Measure (WCM) for a given word based on its phonemic structure.
 
-    C. Stoel-Gammon. 2010. The Word Complexity Measure: Description and 
-    application to developmental phonology and disorders. Clinical
-    Linguistics and Phonetics 24(4-5): 271-282.
+    Args:
+        phonemes (list): A list of ARPABET phonemes representing a word.
+
+    Returns:
+        int: The complexity score of the word.
+
+    Reference:
+        C. Stoel-Gammon. 2010. The Word Complexity Measure: Description and 
+        application to developmental phonology and disorders. Clinical
+        Linguistics and Phonetics 24(4-5): 271-282.
     """
-    syls = syllabify(phonemes) 
-    # begin scoring
+    syllables = syllabify(phonemes)
     score = 0
-    ## Word patterns
-    # (1) Productions with more than two syllables receive 1 point
-    if len(syls) > 2:
+
+    # Word Patterns
+    # (1) More than two syllables
+    if len(syllables) > 2:
         score += 1
-    # FIXME <stupid_rule>
-    # (2) Productions with stress on any syllable but the first receive 
-    # 1 point [this rule is stupid --KG]
-    if len(syls) > 1 and not syls[0][1][-1].endswith('1'):
-        score += 1
-    # FIXME </stupid_rule>
-    ## Syllable structures
-    # (1) Productions with a word-final consonant receive 1 point
-    if syls[-1][2] != []:
-        score += 1
-    # (2) Productions with a syllable cluster (defined as a sequence of 
-    # two or more consonants within a syllable) receive one point for 
-    # each cluster:
-    for syl in syls:
-        if len(syl[0]) > 1:
+
+    # (2) Stress on any syllable but the first (marked as FIXME)
+    # Assuming syllabify returns a Syllable dataclass with a nucleus containing stress
+    if len(syllables) > 1:
+        # Check if any syllable other than the first has primary stress ('1')
+        if any('1' in syllable.nucleus[0] for syllable in syllables[1:]):
             score += 1
-        if len(syl[2]) > 1:
+
+    # Syllable Structures
+    # (1) Word-final consonant
+    if syllables[-1].coda:
+        score += 1
+
+    # (2) Syllable clusters
+    for syllable in syllables:
+        # Onset clusters (two or more consonants)
+        if len(syllable.onset) > 1:
             score += 1
-    ## Sound classes
-    # (1) Productions with a velar consonant receive 1 point for each 
-    # velar
-    for syl in syls:
-        score += sum(ph in DORSALS for ph in (syl[0] + syl[2]))
-    # (2) Productions with a liquid, a syllabic liquid, or a rhotic vowel 
-    # receive 1 point for each liquid, syllabic liquid, and rhotic vowel
-    for syl in syls:
-        score += sum(ph in LIQUIDS for ph in (syl[0] + syl[2]))
-        score += sum(len(ph) > 1 and ph[1] == 'R' for ph in syl[1])
-    # (3) Productions with a fricative or affricate receive 1 point for
-    # each fricative and affricate
-        score += sum(ph in AF for ph in (syl[0] + syl[2]))
-    # (4) Productions with a voiced fricative or affricate receive 1 point
-    # for each fricative and affricate (in addition to the point received
-    # for #3)
-    for syl in syls:
-        score += sum(ph in VOICED_AF for ph in (syl[0] + syl[2]))
-    # and we're done
+        # Coda clusters (two or more consonants)
+        if len(syllable.coda) > 1:
+            score += 1
+
+    # Sound Classes
+    for syllable in syllables:
+        # Combine onset and coda phonemes
+        consonants = syllable.onset + syllable.coda
+
+        # (1) Velar consonants
+        velars = sum(ph in DORSALS for ph in consonants)
+        score += velars
+
+        # (2) Liquids
+        liquids = sum(ph in LIQUIDS for ph in consonants)
+        score += liquids
+
+        # (3) Fricatives and affricates
+        fricatives_affricates = sum(ph in AF for ph in consonants)
+        score += fricatives_affricates
+
+        # (4) Voiced fricatives and affricates
+        voiced_fricatives_affricates = sum(ph in VOICED_AF for ph in consonants)
+        score += voiced_fricatives_affricates
+
+        # (5) Syllabic liquids or rhotic vowels
+        # Assuming syllable.nucleus contains vowels with stress markers
+        # Rhotic vowels are typically represented with 'R' in their labels
+        syllabic_rhotic = sum(ph.endswith('R') for ph in syllable.nucleus)
+        score += syllabic_rhotic
+
     return score

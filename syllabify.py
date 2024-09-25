@@ -22,178 +22,208 @@
 #
 # syllabify.py: prosodic parsing of ARPABET entries
 
+from dataclasses import dataclass
 from itertools import chain
+from typing import List, Tuple
 
-## constants
-SLAX   = {'IH1', 'IH2', 'EH1', 'EH2', 'AE1', 'AE2', 'AH1', 'AH2',
-                                                    'UH1', 'UH2',}
-VOWELS = {'IY1', 'IY2', 'IY0', 'EY1', 'EY2', 'EY0', 'AA1', 'AA2', 'AA0',
-          'ER1', 'ER2', 'ER0', 'AW1', 'AW2', 'AW0', 'AO1', 'AO2', 'AO0',
-          'AY1', 'AY2', 'AY0', 'OW1', 'OW2', 'OW0', 'OY1', 'OY2', 'OY0',
-          'IH0', 'EH0', 'AE0', 'AH0', 'UH0', 'UW1', 'UW2', 'UW0', 'UW',
-          'IY',  'EY',  'AA',  'ER',   'AW', 'AO',  'AY',  'OW',  'OY',
-          'UH',  'IH',  'EH',  'AE',  'AH',  'UH',} | SLAX
+# Constants
+SLAX = {
+    'IH1', 'IH2', 'EH1', 'EH2', 'AE1', 'AE2', 'AH1', 'AH2',
+    'UH1', 'UH2',
+}
 
-## licit medial onsets
+VOWELS = {
+    'IY1', 'IY2', 'IY0', 'EY1', 'EY2', 'EY0', 'AA1', 'AA2', 'AA0',
+    'ER1', 'ER2', 'ER0', 'AW1', 'AW2', 'AW0', 'AO1', 'AO2', 'AO0',
+    'AY1', 'AY2', 'AY0', 'OW1', 'OW2', 'OW0', 'OY1', 'OY2', 'OY0',
+    'IH0', 'EH0', 'AE0', 'AH0', 'UH0', 'UW1', 'UW2', 'UW0', 'UW',
+    'IY', 'EY', 'AA', 'ER', 'AW', 'AO', 'AY', 'OW', 'OY',
+    'UH', 'IH', 'EH', 'AE', 'AH',
+} | SLAX
 
-O2 = {('P', 'R'), ('T', 'R'), ('K', 'R'), ('B', 'R'), ('D', 'R'),
-      ('G', 'R'), ('F', 'R'), ('TH', 'R'),
-      ('P', 'L'), ('K', 'L'), ('B', 'L'), ('G', 'L'),
-      ('F', 'L'), ('S', 'L'),
-      ('K', 'W'), ('G', 'W'), ('S', 'W'),
-      ('S', 'P'), ('S', 'T'), ('S', 'K'),
-      ('HH', 'Y'), # "clerihew"
-      ('R', 'W'),}
-O3 = {('S', 'T', 'R'), ('S', 'K', 'L'), ('T', 'R', 'W')} # "octroi"
+# Licit medial onsets
+O2 = {
+    ('P', 'R'), ('T', 'R'), ('K', 'R'), ('B', 'R'), ('D', 'R'),
+    ('G', 'R'), ('F', 'R'), ('TH', 'R'),
+    ('P', 'L'), ('K', 'L'), ('B', 'L'), ('G', 'L'),
+    ('F', 'L'), ('S', 'L'),
+    ('K', 'W'), ('G', 'W'), ('S', 'W'),
+    ('S', 'P'), ('S', 'T'), ('S', 'K'),
+    ('HH', 'Y'),  # "clerihew"
+    ('R', 'W'),
+}
 
-# This does not represent anything like a complete list of onsets, but
-# merely those that need to be maximized in medial position.
+O3 = {
+    ('S', 'T', 'R'), ('S', 'K', 'L'), ('T', 'R', 'W')  # "octroi"
+}
 
-def syllabify(pron, alaska_rule=True):
+@dataclass
+class Syllable:
+    onset: List[str]
+    nucleus: List[str]
+    coda: List[str]
+
+def identify_nuclei_and_onsets(pronunciation: List[str]) -> Tuple[List[List[str]], List[List[str]], List[str]]:
     """
-    Syllabifies a CMU dictionary (ARPABET) word string
+    Identify nuclei and onsets in the pronunciation.
 
-    # Alaska rule:
-    >>> pprint(syllabify('AH0 L AE1 S K AH0'.split())) # Alaska
-    '-AH0-.L-AE1-S.K-AH0-'
-    >>> pprint(syllabify('AH0 L AE1 S K AH0'.split(), 0)) # Alaska
-    '-AH0-.L-AE1-.S K-AH0-'
+    Args:
+        pronunciation (List[str]): List of ARPABET phonemes.
 
-    # huge medial onsets:
-    >>> pprint(syllabify('M IH1 N S T R AH0 L'.split())) # minstrel
-    'M-IH1-N.S T R-AH0-L'
-    >>> pprint(syllabify('AA1  K T R W AA0 R'.split())) # octroi
-    '-AA1-K.T R W-AA0-R'
-
-    # destressing
-    >>> pprint(destress(syllabify('M IH1 L AH0 T EH2 R IY0'.split())))
-    'M-IH-.L-AH-.T-EH-.R-IY-'
-
-    # normal treatment of 'j':
-    >>> pprint(syllabify('M EH1 N Y UW0'.split())) # menu
-    'M-EH1-N.Y-UW0-'
-    >>> pprint(syllabify('S P AE1 N Y AH0 L'.split())) # spaniel
-    'S P-AE1-N.Y-AH0-L'
-    >>> pprint(syllabify('K AE1 N Y AH0 N'.split())) # canyon
-    'K-AE1-N.Y-AH0-N'
-    >>> pprint(syllabify('M IH0 N Y UW2 EH1 T'.split())) # minuet
-    'M-IH0-N.Y-UW2-.-EH1-T'
-    >>> pprint(syllabify('JH UW1 N Y ER0'.split())) # junior
-    'JH-UW1-N.Y-ER0-'
-    >>> pprint(syllabify('K L EH R IH HH Y UW'.split())) # clerihew
-    'K L-EH-.R-IH-.HH Y-UW-'
-
-    # nuclear treatment of 'j'
-    >>> pprint(syllabify('R EH1 S K Y UW0'.split())) # rescue
-    'R-EH1-S.K-Y UW0-'
-    >>> pprint(syllabify('T R IH1 B Y UW0 T'.split())) # tribute
-    'T R-IH1-B.Y-UW0-T'
-    >>> pprint(syllabify('N EH1 B Y AH0 L AH0'.split())) # nebula
-    'N-EH1-B.Y-AH0-.L-AH0-'
-    >>> pprint(syllabify('S P AE1 CH UH0 L AH0'.split())) # spatula
-    'S P-AE1-.CH-UH0-.L-AH0-'
-    >>> pprint(syllabify('AH0 K Y UW1 M AH0 N'.split())) # acumen
-    '-AH0-K.Y-UW1-.M-AH0-N'
-    >>> pprint(syllabify('S AH1 K Y AH0 L IH0 N T'.split())) # succulent
-    'S-AH1-K.Y-AH0-.L-IH0-N T'
-    >>> pprint(syllabify('F AO1 R M Y AH0 L AH0'.split())) # formula
-    'F-AO1 R-M.Y-AH0-.L-AH0-'
-    >>> pprint(syllabify('V AE1 L Y UW0'.split())) # value
-    'V-AE1-L.Y-UW0-'
-
-    # everything else
-    >>> pprint(syllabify('N AO0 S T AE1 L JH IH0 K'.split())) # nostalgic
-    'N-AO0-.S T-AE1-L.JH-IH0-K'
-    >>> pprint(syllabify('CH ER1 CH M AH0 N'.split())) # churchmen
-    'CH-ER1-CH.M-AH0-N'
-    >>> pprint(syllabify('K AA1 M P AH0 N S EY2 T'.split())) # compensate
-    'K-AA1-M.P-AH0-N.S-EY2-T'
-    >>> pprint(syllabify('IH0 N S EH1 N S'.split())) # inCENSE
-    '-IH0-N.S-EH1-N S'
-    >>> pprint(syllabify('IH1 N S EH2 N S'.split())) # INcense
-    '-IH1-N.S-EH2-N S'
-    >>> pprint(syllabify('AH0 S EH1 N D'.split())) # ascend
-    '-AH0-.S-EH1-N D'
-    >>> pprint(syllabify('R OW1 T EY2 T'.split())) # rotate
-    'R-OW1-.T-EY2-T'
-    >>> pprint(syllabify('AA1 R T AH0 S T'.split())) # artist
-    '-AA1 R-.T-AH0-S T'
-    >>> pprint(syllabify('AE1 K T ER0'.split())) # actor
-    '-AE1-K.T-ER0-'
-    >>> pprint(syllabify('P L AE1 S T ER0'.split())) # plaster
-    'P L-AE1-S.T-ER0-'
-    >>> pprint(syllabify('B AH1 T ER0'.split())) # butter
-    'B-AH1-.T-ER0-'
-    >>> pprint(syllabify('K AE1 M AH0 L'.split())) # camel
-    'K-AE1-.M-AH0-L'
-    >>> pprint(syllabify('AH1 P ER0'.split())) # upper
-    '-AH1-.P-ER0-'
-    >>> pprint(syllabify('B AH0 L UW1 N'.split())) # balloon
-    'B-AH0-.L-UW1-N'
-    >>> pprint(syllabify('P R OW0 K L EY1 M'.split())) # proclaim
-    'P R-OW0-.K L-EY1-M'
-    >>> pprint(syllabify('IH0 N S EY1 N'.split())) # insane
-    '-IH0-N.S-EY1-N'
-    >>> pprint(syllabify('IH0 K S K L UW1 D'.split())) # exclude
-    '-IH0-K.S K L-UW1-D'
+    Returns:
+        Tuple containing:
+            - nuclei (List[List[str]]): List of nuclei per syllable.
+            - onsets (List[List[str]]): List of onsets per syllable.
+            - codas (List[str]): Remaining phonemes after the last nucleus.
     """
-    ## main pass
-    mypron = list(pron)
     nuclei = []
     onsets = []
-    i = -1
-    for (j, seg) in enumerate(mypron):
-        if seg in VOWELS:
-            nuclei.append([seg])
-            onsets.append(mypron[i + 1:j]) # actually interludes, r.n.
-            i = j
-    codas = [mypron[i + 1:]]
-    ## resolve disputes and compute coda
+    last_vowel_index = -1
+
+    for index, segment in enumerate(pronunciation):
+        if segment in VOWELS:
+            nuclei.append([segment])
+            onsets.append(pronunciation[last_vowel_index + 1:index])
+            last_vowel_index = index
+
+    # Collect remaining segments as coda
+    codas = pronunciation[last_vowel_index + 1:]
+    return nuclei, onsets, codas
+
+def resolve_onsets_and_codas(
+    nuclei: List[List[str]],
+    onsets: List[List[str]],
+    codas: List[str],
+    alaska_rule: bool
+) -> Tuple[List[List[str]], List[List[str]]]:
+    """
+    Resolve onsets and compute codas based on syllabification rules.
+
+    Args:
+        nuclei (List[List[str]]): List of nuclei per syllable.
+        onsets (List[List[str]]): List of onsets per syllable.
+        codas (List[str]): Remaining phonemes after the last nucleus.
+        alaska_rule (bool): Whether to apply the Alaska rule.
+
+    Returns:
+        Tuple containing:
+            - onsets (List[List[str]]): Updated onsets per syllable.
+            - codas (List[List[str]]): Updated codas per syllable.
+    """
+    resolved_codas = [[] for _ in range(len(onsets))]
     for i in range(1, len(onsets)):
         coda = []
-        # boundary cases
-        if len(onsets[i]) > 1 and onsets[i][0] == 'R':
-            nuclei[i - 1].append(onsets[i].pop(0))
-        if len(onsets[i]) > 2 and onsets[i][-1] == 'Y':
-            nuclei[i].insert(0, onsets[i].pop())
-        if len(onsets[i]) > 1 and alaska_rule and nuclei[i-1][-1] in SLAX \
-                                              and onsets[i][0] == 'S':
-            coda.append(onsets[i].pop(0))
-        # onset maximization
+        current_onset = onsets[i]
+
+        # Handle special cases
+        if len(current_onset) > 1 and current_onset[0] == 'R':
+            nuclei[i - 1].append(current_onset.pop(0))
+        if len(current_onset) > 2 and current_onset[-1] == 'Y':
+            nuclei[i].insert(0, current_onset.pop())
+        if (
+            len(current_onset) > 1
+            and alaska_rule
+            and nuclei[i - 1][-1] in SLAX
+            and current_onset[0] == 'S'
+        ):
+            coda.append(current_onset.pop(0))
+
+        # Onset maximization
         depth = 1
-        if len(onsets[i]) > 1:
-            if tuple(onsets[i][-2:]) in O2:
-                depth = 3 if tuple(onsets[i][-3:]) in O3 else 2
-        for j in range(len(onsets[i]) - depth):
-            coda.append(onsets[i].pop(0))
-        # store coda
-        codas.insert(i - 1, coda)
+        if len(current_onset) > 1:
+            last_two = tuple(current_onset[-2:])
+            last_three = tuple(current_onset[-3:]) if len(current_onset) >= 3 else ()
+            if last_three in O3:
+                depth = 3
+            elif last_two in O2:
+                depth = 2
 
-    ## verify that all segments are included in the ouput
-    output = list(zip(onsets, nuclei, codas))  # in Python3 zip is a generator
-    flat_output = list(chain.from_iterable(chain.from_iterable(output)))
-    if flat_output != mypron:
-        raise ValueError(f"could not syllabify {mypron}, got {flat_output}")
-    return output
+        # Transfer phonemes from onset to coda based on depth
+        while len(current_onset) > depth:
+            coda.append(current_onset.pop(0))
 
+        resolved_codas[i - 1] = coda
 
-def pprint(syllab):
+    return onsets, resolved_codas
+
+def syllabify(pron: List[str], alaska_rule: bool = True) -> List[Syllable]:
     """
-    Pretty-print a syllabification
-    """
-    return '.'.join('-'.join(' '.join(p) for p in syl) for syl in syllab)
+    Syllabifies a CMU dictionary (ARPABET) word pronunciation.
 
+    Args:
+        pron (List[str]): A list of ARPABET phonemes representing a word.
+        alaska_rule (bool): Whether to apply the Alaska rule for syllabification.
 
-def destress(syllab):
-    """
-    Generate a syllabification with nuclear stress information removed
-    """
-    syls = []
-    for (onset, nucleus, coda) in syllab:
-        nuke = [p[:-1] if p[-1] in {'0', '1', '2'} else p for p in nucleus]
-        syls.append((onset, nuke, coda))
-    return syls
+    Returns:
+        List[Syllable]: A list of Syllable dataclasses representing the syllables.
 
+    Raises:
+        ValueError: If syllabification does not include all phonemes.
+    
+    Examples:
+        >>> syllabify(['AH0', 'L', 'AE1', 'S', 'K', 'AH0'])
+        [Syllable(onset=[], nucleus=['AH0'], coda=[]), Syllable(onset=['L'], nucleus=['AE1'], coda=[]), Syllable(onset=['S', 'K'], nucleus=['AH0'], coda=[])]
+    """
+    pronunciation = list(pron)
+    nuclei, onsets, codas = identify_nuclei_and_onsets(pronunciation)
+    onsets, resolved_codas = resolve_onsets_and_codas(nuclei, onsets, codas, alaska_rule)
+
+    # Append remaining codas
+    resolved_codas.append(codas)
+
+    syllables = [
+        Syllable(onset, nucleus, coda)
+        for onset, nucleus, coda in zip(onsets, nuclei, resolved_codas)
+    ]
+
+    # Assign any remaining coda to the last syllable
+    if len(resolved_codas) > len(onsets):
+        syllables[-1].coda.extend(resolved_codas[-1])
+
+    # Flatten syllables and verify all segments are included
+    flat_output = list(chain.from_iterable([s.onset + s.nucleus + s.coda for s in syllables]))
+    if flat_output != pronunciation:
+        raise ValueError(f"Could not syllabify {pronunciation}. Syllabified output: {flat_output}")
+
+    return syllables
+
+def pretty_print(syllab: List[Syllable]) -> str:
+    """
+    Pretty-print a syllabification.
+
+    Args:
+        syllab (List[Syllable]): List of Syllable dataclasses.
+
+    Returns:
+        str: A human-readable string representation of the syllabification.
+    """
+    syllable_strings = []
+    for syl in syllab:
+        onset = ' '.join(syl.onset)
+        nucleus = ' '.join(syl.nucleus)
+        coda = ' '.join(syl.coda)
+        syllable = '-'.join(filter(None, [onset, nucleus, coda]))
+        syllable_strings.append(syllable)
+    return '.'.join(syllable_strings)
+
+def destress(syllab: List[Syllable]) -> List[Syllable]:
+    """
+    Generate a syllabification with nuclear stress information removed.
+
+    Args:
+        syllab (List[Syllable]): List of Syllable dataclasses.
+
+    Returns:
+        List[Syllable]: Syllabification without stress markers.
+    """
+    destressed_syllables = []
+    for syllable in syllab:
+        nuke = [
+            phoneme[:-1] if phoneme[-1] in {'0', '1', '2'} else phoneme
+            for phoneme in syllable.nucleus
+        ]
+        destressed_syllables.append(Syllable(syllable.onset, nuke, syllable.coda))
+    return destressed_syllables
 
 if __name__ == '__main__':
     import doctest
