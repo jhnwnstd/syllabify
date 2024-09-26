@@ -1,6 +1,6 @@
 # Syllabify Project
 
-This project offers tools to syllabify words using the CMU Pronouncing Dictionary and compute their **Word Complexity Measure (WCM)**. It comprises three main Python scripts:
+This project offers tools to **Syllabify** words using the CMU Pronouncing Dictionary and compute their **Word Complexity Measure (WCM)**. It comprises three main Python scripts:
 
 1. [`syllabify.py`](#syllabifypy)
 2. [`wcm.py`](#wcmpy)
@@ -277,9 +277,7 @@ Word Complexity Measure (WCM): 4
 Processing the word `crisscrossing`:
 
 1. **Pronunciation:** `['K', 'R', 'IH1', 'S', 'K', 'R', 'AO2', 'S', 'IH0', 'NG']`
-2. **Syllabification
-
-:**
+2. **Syllabification:**
    - `K-R-IH1`
    - `S-K-R-AO2`
    - `S-IH0-NG`
@@ -341,15 +339,7 @@ K-R-IH1.S-K-R-AO2.S-IH0-NG
    - **Cause:** The syllabified output does not match the original pronunciation.
    
    - **Solution:** Review the syllabification rules and ensure that all phonemes are correctly assigned to syllables.
-
-### Seeking Help
-
-If you encounter issues not covered here:
-
-1. **Check the Logs:** Review any error messages or logs for clues.
-2. **Review Code:** Ensure that all scripts are correctly implemented and that dependencies are met.
-3. **Contact Maintainers:** Reach out to the project maintainers or contributors for assistance.
-
+  
 ---
 
 ## Contributing
