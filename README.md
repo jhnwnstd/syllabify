@@ -1,6 +1,6 @@
 # Syllabify Project
 
-This project offers tools to syllabify words using the CMU Pronouncing Dictionary and compute their **Word Complexity Measure (WCM)**. It comprises three main Python scripts:
+This project offers tools to **Syllabify** words using the CMU Pronouncing Dictionary and compute their **Word Complexity Measure (WCM)**. It comprises three main Python scripts:
 
 1. [`syllabify.py`](#syllabifypy)
 2. [`wcm.py`](#wcmpy)
