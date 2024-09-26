@@ -9,13 +9,15 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
-
 # Constants
 DEFAULT_WORD_COUNT = 10
 SYLLABIFY_MODULE_NAME = "syllabify"
 WCM_MODULE_NAME = "wcm"
 SYLLABIFY_FILE = "syllabify.py"
 WCM_FILE = "wcm.py"
+
+# List of unsyllabifiable words still found in the CMU Pronouncing Dictionary
+UNSYLLABIFIABLE_WORDS = {'fs', 'mmmm', 'shh', 'ths'}
 
 
 def import_module(module_name: str, module_path: Path):
@@ -54,7 +56,8 @@ def import_module(module_name: str, module_path: Path):
 
 def get_random_words(cmu_dict: dict, count: int = DEFAULT_WORD_COUNT) -> List[str]:
     """
-    Selects a random set of unique words from the CMU Pronouncing Dictionary.
+    Selects a random set of unique words from the CMU Pronouncing Dictionary,
+    excluding unsyllabifiable words.
 
     Args:
         cmu_dict (dict): The CMU Pronouncing Dictionary.
@@ -66,9 +69,12 @@ def get_random_words(cmu_dict: dict, count: int = DEFAULT_WORD_COUNT) -> List[st
     Raises:
         ValueError: If the requested number of words exceeds the dictionary size.
     """
-    words = list(cmu_dict.keys())
+    # Get all words from the CMU dictionary and exclude unsyllabifiable words
+    words = [word for word in cmu_dict.keys() if word.lower() not in UNSYLLABIFIABLE_WORDS]
+    
     if count > len(words):
         raise ValueError("Requested number of words exceeds the total available in the dictionary.")
+    
     selected_words = random.sample(words, count)
     logging.debug(f"Selected random words: {selected_words}")
     return selected_words

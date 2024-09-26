@@ -71,10 +71,4 @@ def wcm(phonemes):
         voiced_fricatives_affricates = sum(ph in VOICED_AF for ph in consonants)
         score += voiced_fricatives_affricates
 
-        # (5) Syllabic liquids or rhotic vowels
-        # Assuming syllable.nucleus contains vowels with stress markers
-        # Rhotic vowels are typically represented with 'R' in their labels
-        syllabic_rhotic = sum(ph.endswith('R') for ph in syllable.nucleus)
-        score += syllabic_rhotic
-
     return score
