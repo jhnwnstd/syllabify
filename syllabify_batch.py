@@ -1,13 +1,25 @@
-import sys
-import random
-import nltk
-from pathlib import Path
+"""Interactive test script for syllabify package.
+
+Provides an interactive command-line interface for testing
+syllabification and WCM computation on words from the CMU
+Pronouncing Dictionary.
+"""
+
 import importlib.util
-from typing import List, Optional
 import logging
+import os
+import random
+import re
+import sys
+from pathlib import Path
+from typing import List, Optional
+
+import nltk
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format='%(levelname)s: %(message)s'
+)
 
 # Constants
 DEFAULT_WORD_COUNT = 10
@@ -16,8 +28,11 @@ WCM_MODULE_NAME = "wcm"
 SYLLABIFY_FILE = "syllabify.py"
 WCM_FILE = "wcm.py"
 
-# List of unsyllabifiable words still found in the CMU Pronouncing Dictionary
+# Words to exclude from random selection (unsyllabifiable)
 UNSYLLABIFIABLE_WORDS = {'fs', 'mmmm', 'shh', 'ths'}
+
+# Word validation pattern
+WORD_RE = re.compile(r"[A-Za-z][A-Za-z'’\-–]*")
 
 
 def import_module(module_name: str, module_path: Path):
@@ -54,7 +69,9 @@ def import_module(module_name: str, module_path: Path):
     return module
 
 
-def get_random_words(cmu_dict: dict, count: int = DEFAULT_WORD_COUNT) -> List[str]:
+def get_random_words(
+    cmu_dict: dict, count: int = DEFAULT_WORD_COUNT
+) -> List[str]:
     """
     Selects a random set of unique words from the CMU Pronouncing Dictionary,
     excluding unsyllabifiable words.
@@ -70,17 +87,25 @@ def get_random_words(cmu_dict: dict, count: int = DEFAULT_WORD_COUNT) -> List[st
         ValueError: If the requested number of words exceeds the dictionary size.
     """
     # Get all words from the CMU dictionary and exclude unsyllabifiable words
-    words = [word for word in cmu_dict.keys() if word.lower() not in UNSYLLABIFIABLE_WORDS]
+    words = [
+        word for word in cmu_dict.keys()
+        if word.lower() not in UNSYLLABIFIABLE_WORDS
+    ]
     
     if count > len(words):
-        raise ValueError("Requested number of words exceeds the total available in the dictionary.")
+        raise ValueError(
+            "Requested number of words exceeds the total available "
+            "in the dictionary."
+        )
     
     selected_words = random.sample(words, count)
     logging.debug(f"Selected random words: {selected_words}")
     return selected_words
 
 
-def test_syllabify(syllabify_module, wcm_module, word_list: List[str], cmu_dict: dict):
+def test_syllabify(
+    syllabify_module, wcm_module, word_list: List[str], cmu_dict: dict
+):
     """
     Tests the syllabification and computes the Word Complexity Measure (WCM) for each word.
 
@@ -99,8 +124,15 @@ def test_syllabify(syllabify_module, wcm_module, word_list: List[str], cmu_dict:
                 print(f"Pronunciation: {pron}")
 
                 try:
-                    syllables = syllabify_module.syllabify(pron)
-                    syllabified_str = syllabify_module.pretty_print(syllables)
+                    # Use fast cached syllabify for better performance
+                    syllables = syllabify_module.syllabify_fast(pron)
+                    # Check for compact printing preference
+                    compact = os.getenv(
+                        'SYLLABIFY_COMPACT', ''
+                    ).lower() in ('1', 'true', 'yes')
+                    syllabified_str = syllabify_module.pretty_print(
+                        syllables, phone_join='' if compact else ' '
+                    )
                     num_syllables = len(syllables)
                     complexity_score = wcm_module.wcm(pron)
 
@@ -130,7 +162,9 @@ def prompt_user_choice() -> Optional[str]:
     return choice
 
 
-def prompt_word_count(default: int = DEFAULT_WORD_COUNT) -> int:
+def prompt_word_count(
+    default: int = DEFAULT_WORD_COUNT
+) -> int:
     """
     Prompts the user to enter the number of random words to test.
 
@@ -140,7 +174,9 @@ def prompt_word_count(default: int = DEFAULT_WORD_COUNT) -> int:
     Returns:
         int: The number of words to test.
     """
-    count_input = input(f"Enter the number of random words to test (default {default}): ").strip()
+    count_input = input(
+        f"Enter the number of random words to test (default {default}): "
+    ).strip()
     if not count_input:
         logging.debug(f"No input provided. Using default count: {default}")
         return default
@@ -163,24 +199,39 @@ def prompt_specific_word() -> Optional[str]:
         Optional[str]: The word entered by the user, or None if no input.
     """
     word = input("Enter the word to syllabify: ").strip()
-    if word.isalpha():
+    if WORD_RE.fullmatch(word):
         logging.debug(f"User entered specific word: {word}")
         return word
     else:
-        logging.warning("Invalid word entered. Please enter alphabetic characters only.")
+        logging.warning(
+            "Invalid word. Please enter letters, apostrophes, "
+            "and hyphens only."
+        )
         return None
 
 
 def main():
+    # Set random seed if specified
+    seed = os.getenv('SYLLABIFY_SEED')
+    if seed:
+        try:
+            random.seed(int(seed))
+            logging.info(f"Random seed set to {seed}")
+        except ValueError:
+            logging.warning(f"Invalid seed '{seed}', ignoring")
+
     # Define paths for syllabify.py and wcm.py
     syllabify_path = Path(SYLLABIFY_FILE)
     wcm_path = Path(WCM_FILE)
 
     # Import the syllabify and wcm modules
-    syllabify_module = import_module(SYLLABIFY_MODULE_NAME, syllabify_path)
+    syllabify_module = import_module(
+        SYLLABIFY_MODULE_NAME, syllabify_path
+    )
     wcm_module = import_module(WCM_MODULE_NAME, wcm_path)
 
-    # Download the CMU Pronouncing Dictionary from NLTK if it's not already downloaded
+    # Download the CMU Pronouncing Dictionary from NLTK
+    # if it's not already downloaded
     try:
         nltk.data.find('corpora/cmudict')
         logging.info("CMU Pronouncing Dictionary already downloaded.")
@@ -190,27 +241,44 @@ def main():
 
     # Load the CMU Pronouncing Dictionary
     cmu_dict = nltk.corpus.cmudict.dict()
-    logging.info(f"Loaded CMU Pronouncing Dictionary with {len(cmu_dict)} entries.")
+    logging.info(
+        f"Loaded CMU Pronouncing Dictionary with {len(cmu_dict)} entries."
+    )
 
-    while True:
-        choice = prompt_user_choice()
-
-        if choice == '1':
-            count = prompt_word_count()
+    try:
+        while True:
             try:
-                words_to_test = get_random_words(cmu_dict, count)
-                test_syllabify(syllabify_module, wcm_module, words_to_test, cmu_dict)
-            except ValueError as ve:
-                logging.error(ve)
-        elif choice == '2':
-            word = prompt_specific_word()
-            if word:
-                test_syllabify(syllabify_module, wcm_module, [word], cmu_dict)
-        elif choice == '3':
-            print("Exiting the program. Goodbye!")
-            sys.exit(0)
-        else:
-            logging.warning("Invalid choice. Please enter 1, 2, or 3.")
+                choice = prompt_user_choice()
+            except KeyboardInterrupt:
+                print("\n\nGoodbye!")
+                sys.exit(0)
+            except EOFError:
+                print("\nExiting the program. Goodbye!")
+                sys.exit(0)
+
+            if choice == '1':
+                count = prompt_word_count()
+                try:
+                    words_to_test = get_random_words(cmu_dict, count)
+                    test_syllabify(
+                        syllabify_module, wcm_module, words_to_test, cmu_dict
+                    )
+                except ValueError as ve:
+                    logging.error(ve)
+            elif choice == '2':
+                word = prompt_specific_word()
+                if word:
+                    test_syllabify(
+                        syllabify_module, wcm_module, [word], cmu_dict
+                    )
+            elif choice == '3':
+                print("Exiting the program. Goodbye!")
+                sys.exit(0)
+            else:
+                logging.warning("Invalid choice. Please enter 1, 2, or 3.")
+    except KeyboardInterrupt:
+        print("\n\nGoodbye!")
+        sys.exit(0)
 
 
 if __name__ == '__main__':
